@@ -1,0 +1,1 @@
+# Fribbels-Honkai-Star-Rail-Scanner
