@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8">
+    <link href="./styles.css" rel="stylesheet">
+  </head>
+  <body>
+    <script src="./renderer.js"></script>
+    <h2>
+      Fribbels HSR Scanner v1.0
+    </h2>
+    <ol>
+      <li>Open HSR and set language to English and screen resolution to 1920x1080</li>
+      <li>Choose the non 'Full Screen' option. If it's the only option, hit Alt+Enter to exit full screen</li>
+      <li>Open the 'Characters' menu</li>
+      <li>Select a character that has all +15 relics</li>
+      <li>Select the minimum enhance option below</li>
+      <li>Click 'Start' and wait - do not move the mouse until done</li>
+      <li>Press any key to cancel an in-progress scan</li>
+      <li>Once finished, save your data to a file</li>
+    </ol>
+
+    <h2>
+      Options
+    </h2>
+    <div class='optionsRow'>
+      <div class='optionsLabel'>
+        Minimum enhance:
+      </div>
+
+      <select name="inputLevel" id="inputLevel">
+        <option value=0>+0 and up</option>
+        <option value=3>+3 and up</option>
+        <option value=6>+6 and up</option>
+        <option value=9 selected>+9 and up</option>
+        <option value=12>+12 and up</option>
+        <option value=15>+15 only</option>
+      </select>
+    </div>
+
+    </br>
+
+    <input type="submit" class="" value="Start" id="startButton"></input>
+
+    </br>
+
+    <h2 id='status'>
+      Status: Waiting to start
+    </h2>
+
+
+    <div id='exporter' style="display:none">
+      <input type="submit" class="" value="Save" id="saveButton"></input>
+    </div>
+
+    <h2>
+      Logs
+    </h2>
+
+
+    <textarea id="textArea" readonly rows="10" cols="75"></textarea>
+
+  </body>
+</html>
