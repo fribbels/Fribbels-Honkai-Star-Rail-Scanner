@@ -24,6 +24,7 @@ function createWindow() {
         }
     })
     mainWindow.loadFile('index.html')
+    mainWindow.webContents.setBackgroundThrottling(false);
     remoteMain.initialize();
 
     require('@electron/remote/main').enable(mainWindow.webContents)
