@@ -34,6 +34,8 @@ let page = 0;
 let items = [];
 let exit = true;
 
+let xCrop = 1450
+
 function sleep(ms) {
     console.log('sleep', ms);
     return new Promise(resolve => setTimeout(resolve, ms));
@@ -68,7 +70,7 @@ async function setWindow() {
 }
 
 async function regionCapture() {
-  var regionImage = await screen.capture('screenshot.png', FileType.PNG, 'resources');
+  var regionImage = await screen.captureRegion('screenshot.png', new Region(1450, 0, 470, 1080), FileType.PNG, 'resources');
 };
 
 async function scrollDown() {
@@ -110,14 +112,14 @@ async function runOcr() {
         await regionCapture();
 
         let stdout = await execSync(`\
-            "${magickPath}" convert "./resources/screenshot.png" -crop 260x220+1535+310 -channel RGB -negate -resize 300%  -set colorspace Gray  -threshold 50% -normalize -white-threshold 45% -density 300 -units PixelsPerInch "./resources/cropped0.png" && \
-            "${magickPath}" convert "./resources/screenshot.png" -crop 90x220+1800+310  -channel RGB -negate -resize 300%  -set colorspace Gray  -normalize -white-threshold 45% -density 300 -units PixelsPerInch "./resources/cropped1.png" && \
-            "${magickPath}" convert "./resources/screenshot.png" -crop 430x40+1490+240  -channel RGB -negate  -fuzz 30   -set colorspace Gray -separate -white-threshold 60% -resize 200% "./resources/cropped2.png" && \
-            "${magickPath}" convert "./resources/screenshot.png" -crop 400x37+1480+560  -channel RGB -negate  -fuzz 30   -set colorspace Gray -separate -white-threshold 60% -resize 200% "./resources/cropped3.png" \
+            "${magickPath}" convert "./resources/screenshot.png" -crop 260x220+${1535-xCrop}+310 -channel RGB -negate -resize 300%  -set colorspace Gray  -threshold 50% -normalize -white-threshold 45% -density 300 -units PixelsPerInch "./resources/cropped0.png" && \
+            "${magickPath}" convert "./resources/screenshot.png" -crop 90x220+${1800-xCrop}+310  -channel RGB -negate -resize 300%  -set colorspace Gray  -normalize -white-threshold 45% -density 300 -units PixelsPerInch "./resources/cropped1.png" && \
+            "${magickPath}" convert "./resources/screenshot.png" -crop 430x40+${1490-xCrop}+240  -channel RGB -negate  -fuzz 30   -set colorspace Gray -separate -white-threshold 60% -resize 200% "./resources/cropped2.png" && \
+            "${magickPath}" convert "./resources/screenshot.png" -crop 400x37+${1480-xCrop}+560  -channel RGB -negate  -fuzz 30   -set colorspace Gray -separate -white-threshold 60% -resize 200% "./resources/cropped3.png" \
         `);
 
         let compareHideColor = hexToRgb(await execSync(`\
-            "${magickPath}" "resources/screenshot.png" -format "%[hex:u.p{1530,157}]" info:
+            "${magickPath}" "resources/screenshot.png" -format "%[hex:u.p{${1530-xCrop},157}]" info:
         `).toString().substring(0, 6))
         let compareHide = closest(compareHideColor, compareHidePalette).value
         if (compareHide == 'compare') {
@@ -152,6 +154,7 @@ async function runOcr() {
         `)
         setOcr = fs.readFileSync("resources/cropped3.txt", "utf-8");
 
+
         log('Reading types: \n' + typesOcr)
         log('Reading stats: \n' + statsOcr)
         log('Reading header: \n' + headerOcr)
@@ -178,7 +181,6 @@ async function runOcr() {
 
         console.log('item', item);
         log('Parsed relic: \n' + JSON.stringify(item, null, 2))
-
         return item;
     } catch (e) {
         log('Error: \n' + e)
@@ -228,7 +230,7 @@ async function clickAt(x, y) {
     if (exit) return;
     await moveMouse(x, y);
     await leftClick();
-    await sleep(1500);
+    await sleep(400);
 }
 
 async function clickAtPoints(arr) {
