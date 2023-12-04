@@ -430,11 +430,11 @@ ioHook.on('keydown', (event) => {
     cancel()
 });
 
-ioHook.on('keydown', (event) => {
-    if (event.keycode == 16) {
-        runOcr()
-    }
-});
+// ioHook.on('keydown', (event) => {
+//     if (event.keycode == 16) {
+//         runOcr()
+//     }
+// });
 
 // Register and start hook
 ioHook.start();
