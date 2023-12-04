@@ -6,6 +6,9 @@ const path = require('path')
 const remote = require('@electron/remote');
 const dialog = remote.dialog;
 const currentWindow = remote.getCurrentWindow();
+var Jimp = require("jimp");
+
+const { BrowserWindow, desktopCapturer } = require('electron')
 
 const {
   closest,
@@ -30,11 +33,13 @@ const slowSpeed = 500;
 
 mouse.config.mouseSpeed = defaultSpeed;
 let wind;
+let xOffset = 0
+let yOffset = 0
 let page = 0;
 let items = [];
 let exit = true;
 
-let xCrop = 1450
+let xCrop = 700
 
 function sleep(ms) {
     console.log('sleep', ms);
@@ -60,6 +65,9 @@ async function setWindow() {
         console.log('Found window');
         await wind.workwindow.setForeground()
         await wind.workwindow.setView({ x: 0, y: 0 }); // move workwindow to top left corner of the screen
+        let view = wind.workwindow.getView()
+        xOffset = view.x
+        yOffset = view.y
 
         await sleep(1000);
 
@@ -70,7 +78,22 @@ async function setWindow() {
 }
 
 async function regionCapture() {
-  var regionImage = await screen.captureRegion('screenshot.png', new Region(1450, 0, 470, 1080), FileType.PNG, 'resources');
+  let date1 = new Date()
+  var regionImage = await screen.captureRegion('screenshot.png', new Region(xCrop + xOffset, 0 + yOffset, 1920-xCrop, 1080), FileType.PNG, 'resources');
+  var regionImage = await screen.captureRegion('cropped0.png', new Region(xCrop + xOffset + 829, 0 + yOffset + 269, 260, 220), FileType.PNG, 'resources');
+  var regionImage = await screen.captureRegion('cropped1.png', new Region(xCrop + xOffset + 1082, 0 + yOffset + 265, 110, 220), FileType.PNG, 'resources');
+  var regionImage = await screen.captureRegion('cropped2.png', new Region(xCrop + xOffset + 777, 0 + yOffset + 207, 430, 40), FileType.PNG, 'resources');
+  var regionImage = await screen.captureRegion('cropped3.png', new Region(xCrop + xOffset + 777, 0 + yOffset + 532, 400, 37), FileType.PNG, 'resources');
+  let date2 = new Date()
+
+        // let stdout = await execSync(`\
+        //     "${magickPath}" convert "./resources/screenshot.png" -crop 260x220+${1535-xCrop-xOffset}+${310-yOffset} -channel RGB -negate -resize 300%  -set colorspace Gray  -threshold 50% -normalize -white-threshold 45% -density 300 -units PixelsPerInch "./resources/cropped0.png" && \
+        //     "${magickPath}" convert "./resources/screenshot.png" -crop 90x220+${1800-xCrop-xOffset}+${310-yOffset}  -channel RGB -negate -resize 300%  -set colorspace Gray  -normalize -white-threshold 45% -density 300 -units PixelsPerInch "./resources/cropped1.png" && \
+        //     "${magickPath}" convert "./resources/screenshot.png" -crop 430x40+${1490-xCrop-xOffset}+${240-yOffset}  -channel RGB -negate  -fuzz 30   -set colorspace Gray -separate -white-threshold 60% -resize 200% "./resources/cropped2.png" && \
+        //     "${magickPath}" convert "./resources/screenshot.png" -crop 400x37+${1480-xCrop-xOffset}+${560-yOffset}  -channel RGB -negate  -fuzz 30   -set colorspace Gray -separate -white-threshold 60% -resize 200% "./resources/cropped3.png" \
+        // `);
+  console.log('DIFF', date2-date1)
+
 };
 
 async function scrollDown() {
@@ -112,14 +135,14 @@ async function runOcr() {
         await regionCapture();
 
         let stdout = await execSync(`\
-            "${magickPath}" convert "./resources/screenshot.png" -crop 260x220+${1535-xCrop}+310 -channel RGB -negate -resize 300%  -set colorspace Gray  -threshold 50% -normalize -white-threshold 45% -density 300 -units PixelsPerInch "./resources/cropped0.png" && \
-            "${magickPath}" convert "./resources/screenshot.png" -crop 90x220+${1800-xCrop}+310  -channel RGB -negate -resize 300%  -set colorspace Gray  -normalize -white-threshold 45% -density 300 -units PixelsPerInch "./resources/cropped1.png" && \
-            "${magickPath}" convert "./resources/screenshot.png" -crop 430x40+${1490-xCrop}+240  -channel RGB -negate  -fuzz 30   -set colorspace Gray -separate -white-threshold 60% -resize 200% "./resources/cropped2.png" && \
-            "${magickPath}" convert "./resources/screenshot.png" -crop 400x37+${1480-xCrop}+560  -channel RGB -negate  -fuzz 30   -set colorspace Gray -separate -white-threshold 60% -resize 200% "./resources/cropped3.png" \
+            "${magickPath}" convert "./resources/cropped0.png" -channel RGB -negate -resize 300%  -set colorspace Gray  -threshold 50% -normalize -white-threshold 45% -density 300 -units PixelsPerInch "./resources/cropped0.png" && \
+            "${magickPath}" convert "./resources/cropped1.png" -channel RGB -negate -resize 300%  -set colorspace Gray  -normalize -white-threshold 45% -density 300 -units PixelsPerInch "./resources/cropped1.png" && \
+            "${magickPath}" convert "./resources/cropped2.png" -channel RGB -negate  -fuzz 30   -set colorspace Gray -separate -white-threshold 60% -resize 200% "./resources/cropped2.png" && \
+            "${magickPath}" convert "./resources/cropped3.png" -channel RGB -negate  -fuzz 30   -set colorspace Gray -separate -white-threshold 60% -resize 200% "./resources/cropped3.png" \
         `);
 
         let compareHideColor = hexToRgb(await execSync(`\
-            "${magickPath}" "resources/screenshot.png" -format "%[hex:u.p{${1530-xCrop},157}]" info:
+            "${magickPath}" "resources/screenshot.png" -format "%[hex:u.p{${1530-xCrop-xOffset},${157-yOffset}}]" info:
         `).toString().substring(0, 6))
         let compareHide = closest(compareHideColor, compareHidePalette).value
         if (compareHide == 'compare') {
@@ -130,7 +153,7 @@ async function runOcr() {
         }
 
         let color = hexToRgb(await execSync(`\
-            "${magickPath}" "resources/screenshot.png" -format "%[hex:u.p{930,785}]" info:
+            "${magickPath}" "resources/screenshot.png" -format "%[hex:u.p{${930-xCrop-xOffset},${785-yOffset}}]" info:
         `).toString().substring(0, 6))
         let grade = closest(color, palette).value
 
