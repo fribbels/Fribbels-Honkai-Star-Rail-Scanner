@@ -79,7 +79,7 @@ async function setWindow() {
 
 async function regionCapture() {
   let date1 = new Date()
-  var regionImage = await screen.captureRegion('screenshot.png', new Region(xCrop + xOffset, 0 + yOffset, 1920-xCrop, 1080), FileType.PNG, 'resources');
+  var regionImage = await screen.captureRegion('screenshot.png', new Region(xCrop + xOffset, 0 + yOffset, 1920-xCrop-100, 1080-100), FileType.PNG, 'resources');
   var regionImage = await screen.captureRegion('cropped0.png', new Region(xCrop + xOffset + 829, 0 + yOffset + 269, 260, 220), FileType.PNG, 'resources');
   var regionImage = await screen.captureRegion('cropped1.png', new Region(xCrop + xOffset + 1082, 0 + yOffset + 265, 110, 220), FileType.PNG, 'resources');
   var regionImage = await screen.captureRegion('cropped2.png', new Region(xCrop + xOffset + 777, 0 + yOffset + 207, 430, 40), FileType.PNG, 'resources');
