@@ -7,7 +7,7 @@
   <body>
     <script src="./renderer.js"></script>
     <h2>
-      Fribbels HSR Scanner v1.0.3
+      Fribbels HSR Scanner v1.0.5
     </h2>
     <ol>
       <li>Open HSR and set language to English and screen resolution to 1920x1080</li>
@@ -25,10 +25,21 @@
     </h2>
     <div class='optionsRow'>
       <div class='optionsLabel'>
+        Minimum grade:
+      </div>
+
+      <select name="inputGrade" id="inputGrade" class="optionSelect">
+        <option value=4>4 star (purple)</option>
+        <option value=5 selected>5 star (gold)</option>
+      </select>
+    </div>
+
+    <div class='optionsRow'>
+      <div class='optionsLabel'>
         Minimum enhance:
       </div>
 
-      <select name="inputLevel" id="inputLevel">
+      <select name="inputLevel" id="inputLevel" class="optionSelect">
         <option value=0>+0 and up</option>
         <option value=3>+3 and up</option>
         <option value=6>+6 and up</option>

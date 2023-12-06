@@ -6,7 +6,6 @@ const path = require('path')
 const remote = require('@electron/remote');
 const dialog = remote.dialog;
 const currentWindow = remote.getCurrentWindow();
-var Jimp = require("jimp");
 
 const { BrowserWindow, desktopCapturer } = require('electron')
 
@@ -26,7 +25,8 @@ let compareHidePalette = [
     {R: 255, G: 255, B: 255, value: 'compare' },
 ]
 
-let selectedValue = 9
+let selectedLevel = 9
+let selectedGrade = 5
 
 const defaultSpeed = 5000;
 const slowSpeed = 500;
@@ -36,6 +36,7 @@ let wind;
 let xOffset = 0
 let yOffset = 0
 let page = 0;
+let grade = 5;
 let items = [];
 let exit = true;
 
@@ -77,37 +78,13 @@ async function setWindow() {
     return false;
 }
 
-async function regionCapture() {
-  let date1 = new Date()
-  var regionImage = await screen.captureRegion('screenshot.png', new Region(xCrop + xOffset, 0 + yOffset, 1920-xCrop-100, 1080-100), FileType.PNG, 'resources');
-  var regionImage = await screen.captureRegion('cropped0.png', new Region(xCrop + xOffset + 829, 0 + yOffset + 269, 260, 220), FileType.PNG, 'resources');
-  var regionImage = await screen.captureRegion('cropped1.png', new Region(xCrop + xOffset + 1082, 0 + yOffset + 265, 110, 220), FileType.PNG, 'resources');
-  var regionImage = await screen.captureRegion('cropped2.png', new Region(xCrop + xOffset + 777, 0 + yOffset + 207, 430, 40), FileType.PNG, 'resources');
-  var regionImage = await screen.captureRegion('cropped3.png', new Region(xCrop + xOffset + 777, 0 + yOffset + 532, 400, 37), FileType.PNG, 'resources');
-  let date2 = new Date()
-
-        // let stdout = await execSync(`\
-        //     "${magickPath}" convert "./resources/screenshot.png" -crop 260x220+${1535-xCrop-xOffset}+${310-yOffset} -channel RGB -negate -resize 300%  -set colorspace Gray  -threshold 50% -normalize -white-threshold 45% -density 300 -units PixelsPerInch "./resources/cropped0.png" && \
-        //     "${magickPath}" convert "./resources/screenshot.png" -crop 90x220+${1800-xCrop-xOffset}+${310-yOffset}  -channel RGB -negate -resize 300%  -set colorspace Gray  -normalize -white-threshold 45% -density 300 -units PixelsPerInch "./resources/cropped1.png" && \
-        //     "${magickPath}" convert "./resources/screenshot.png" -crop 430x40+${1490-xCrop-xOffset}+${240-yOffset}  -channel RGB -negate  -fuzz 30   -set colorspace Gray -separate -white-threshold 60% -resize 200% "./resources/cropped2.png" && \
-        //     "${magickPath}" convert "./resources/screenshot.png" -crop 400x37+${1480-xCrop-xOffset}+${560-yOffset}  -channel RGB -negate  -fuzz 30   -set colorspace Gray -separate -white-threshold 60% -resize 200% "./resources/cropped3.png" \
-        // `);
-  console.log('DIFF', date2-date1)
-
-};
-
-async function scrollDown() {
+async function scrollDown(n) {
     if (exit) return;
-    await mouse.move(straightTo(new Point(478, 861)));
+    for (let i = 0; i < n; i++) {
+        mouse.scrollDown(1)
+    }
 
-    await mouse.pressButton(Button.LEFT);
-
-    mouse.config.mouseSpeed = 100;
-    await mouse.move(straightTo(new Point(478, 707)));
-    mouse.config.mouseSpeed = defaultSpeed;
-
-    await sleep(1000);
-    await mouse.releaseButton(Button.LEFT);
+    await sleep(500);
 };
 
 function hexToRgb(hex) {
@@ -128,68 +105,72 @@ function hexToRgb(hex) {
 let magickPath = 'magick/magick.exe'
 let tesseractPath = 'Tesseract-OCR/tesseract.exe'
 
-async function runOcr() {
+async function regionCapture2(imageIndex) {
+    let date1 = new Date()
+    await screen.captureRegion(`screenshot${imageIndex}.png`, new Region(1478+xOffset, 103+yOffset, 415, 470), FileType.PNG, 'resources');
+    let date2 = new Date()
+}
+
+async function compareCapture() {
+    await sleep(500)
+    await screen.captureRegion(`screenshotCompare.png`, new Region(1491 + xOffset, 111 + yOffset, 167, 32), FileType.PNG, 'resources');
+
+    let compareHideColor = hexToRgb(await execSync(`\
+        "${magickPath}" "resources/screenshotCompare.png" -format "%[hex:u.p{${32},${16}}]" info:
+    `).toString().substring(0, 6))
+
+    let compareHide = closest(compareHideColor, compareHidePalette).value
+    console.log(compareHideColor, compareHide)
+    if (compareHide == 'compare') {
+        console.log('Switching background to compare mode')
+        log('Switching background to compare mode')
+        await clickAt(1575, 128);
+        await sleep(500)
+    }
+}
+
+async function readImageFile(name, num) {
+    await execSync(`\
+        "${tesseractPath}" "resources/${name}.png" "resources/${name}" -l eng -psm 6 tessconfig${num ? 'num' : ''}.txt \
+    `)
+    return fs.readFileSync(`resources/${name}.txt`, "utf-8");
+}
+
+
+async function runOcr(imageIndex) {
     try {
         console.log('Run ocr');
         log('\n=== Running OCR ===\n')
-        await regionCapture();
 
-        let stdout = await execSync(`\
-            "${magickPath}" convert "./resources/cropped0.png" -channel RGB -negate -resize 300%  -set colorspace Gray  -threshold 50% -normalize -white-threshold 45% -density 300 -units PixelsPerInch "./resources/cropped0.png" && \
-            "${magickPath}" convert "./resources/cropped1.png" -channel RGB -negate -resize 300%  -set colorspace Gray  -normalize -white-threshold 45% -density 300 -units PixelsPerInch "./resources/cropped1.png" && \
-            "${magickPath}" convert "./resources/cropped2.png" -channel RGB -negate  -fuzz 30   -set colorspace Gray -separate -white-threshold 60% -resize 200% "./resources/cropped2.png" && \
-            "${magickPath}" convert "./resources/cropped3.png" -channel RGB -negate  -fuzz 30   -set colorspace Gray -separate -white-threshold 60% -resize 200% "./resources/cropped3.png" \
-        `);
+        await execSync(
+`"${magickPath}" convert \
+"./resources/screenshot${imageIndex}.png" \
+( +clone -crop 269x237+51+152 -channel RGB -negate -resize 300% -set colorspace Gray  -threshold 50% -normalize -white-threshold 45% -density 300 -units PixelsPerInch  -write  "./resources/croppedStatType${imageIndex}.png" +delete ) \
+( +clone -crop 105x239+307+147 -channel RGB -negate -resize 300% -set colorspace Gray  -normalize -white-threshold 45% -density 300 -units PixelsPerInch -write "./resources/croppedStatValue${imageIndex}.png" +delete ) \
+( +clone -crop 68x36+345+102 -channel RGB -negate  -fuzz 30   -set colorspace Gray -separate -white-threshold 60% -resize 200% -write "./resources/croppedPartEnhance${imageIndex}.png" +delete ) \
+-crop 393x45+3+425 -channel RGB -negate  -fuzz 30   -set colorspace Gray -separate -white-threshold 60% -resize 200% "./resources/croppedSet${imageIndex}.png"
+`)
 
-        let compareHideColor = hexToRgb(await execSync(`\
-            "${magickPath}" "resources/screenshot.png" -format "%[hex:u.p{${1530-xCrop-xOffset},${157-yOffset}}]" info:
-        `).toString().substring(0, 6))
-        let compareHide = closest(compareHideColor, compareHidePalette).value
-        if (compareHide == 'compare') {
-            console.log('Switching background to compare mode, restarting scan')
-            log('Switching background to compare mode, restarting scan')
-            await clickAt(1575, 128);
-            return await runOcr()
+        let ocrStatType = readImageFile(`croppedStatType${imageIndex}`)
+        let ocrStatValue = readImageFile(`croppedStatValue${imageIndex}`, true)
+        let ocrPartEnhance = readImageFile(`croppedPartEnhance${imageIndex}`)
+        let ocrSet = readImageFile(`croppedSet${imageIndex}`)
+
+        let values = await Promise.all([ocrStatType, ocrStatValue, ocrPartEnhance, ocrSet])
+        let result = {
+            ocrStatType: values[0],
+            ocrStatValue: values[1],
+            ocrPartEnhance: values[2],
+            ocrSet: values[3],
         }
 
-        let color = hexToRgb(await execSync(`\
-            "${magickPath}" "resources/screenshot.png" -format "%[hex:u.p{${930-xCrop-xOffset},${785-yOffset}}]" info:
-        `).toString().substring(0, 6))
-        let grade = closest(color, palette).value
+        log('Read: ' + JSON.stringify(result) + '\n')
+        console.log('Read: ', result)
 
-        let typesOcr = await execSync(`\
-            "${tesseractPath}" "resources/cropped0.png" "resources/cropped0" -l eng -psm 6 tessconfig.txt \
-        `)
-        typesOcr = fs.readFileSync("resources/cropped0.txt", "utf-8");
-
-        let statsOcr = await execSync(`\
-            "${tesseractPath}" "resources/cropped1.png" "resources/cropped1" -l eng -psm 6 tessconfignum.txt \
-        `)
-        statsOcr = fs.readFileSync("resources/cropped1.txt", "utf-8");
-
-        let headerOcr = await execSync(`\
-            "${tesseractPath}" "resources/cropped2.png" "resources/cropped2" -l eng -psm 6 tessconfig.txt \
-        `)
-        headerOcr = fs.readFileSync("resources/cropped2.txt", "utf-8");
-
-        let setOcr = await execSync(`\
-            "${tesseractPath}" "resources/cropped3.png" "resources/cropped3" -l eng -psm 6 tessconfig.txt \
-        `)
-        setOcr = fs.readFileSync("resources/cropped3.txt", "utf-8");
-
-
-        log('Reading types: \n' + typesOcr)
-        log('Reading stats: \n' + statsOcr)
-        log('Reading header: \n' + headerOcr)
-        log('Reading set: \n' + setOcr)
-        console.log(typesOcr);
-        console.log(statsOcr);
-        let headerSplit = headerOcr.split(/\s*\+\s*/);
-        let stats = statsOcr.split('\n').map(x => x.trim()).filter(x => x.length > 0).map(x => x.replace(/\s/g, ""));
-        let types = typesOcr.split('\n').map(x => x.trim()).filter(x => x.length > 0).map(x => x.replace(/[^a-zA-Z]/g, ""))
-        let part = headerSplit[0].trim();
-        let enhance = parseInt(headerSplit[1].trim());
-        let set = setOcr.trim();
+        let enhance = parseInt(result.ocrPartEnhance.replace('+', '').trim());
+        let stats = result.ocrStatValue.split('\n').map(x => x.trim()).filter(x => x.length > 0).map(x => x.replace(/\s/g, ""));
+        let types = result.ocrStatType.split('\n').map(x => x.trim()).filter(x => x.length > 0).map(x => x.replace(/[^a-zA-Z]/g, ""))
+        let set = result.ocrSet.trim();
 
         let mergedStats = []
         for (let i = 0; i < 5; i++) {
@@ -198,13 +179,17 @@ async function runOcr() {
             }
         }
 
-        let item = {
-            stats: mergedStats, part, enhance, set, grade
+        let relic = {
+            stats: mergedStats,
+            enhance,
+            set,
+            grade
         }
 
-        console.log('item', item);
-        log('Parsed relic: \n' + JSON.stringify(item, null, 2))
-        return item;
+        log('Parsed: ' + JSON.stringify(relic) + '\n')
+        console.log('Parsed: ', relic)
+
+        return relic
     } catch (e) {
         log('Error: \n' + e)
         log('This is most likely an issue with your screen resolution - please set the game resolution to 1920x1080 and exit full screen before trying again.')
@@ -244,7 +229,7 @@ async function save() {
 }
 window.save = save
 async function generateResults() {
-    setStatus(`Done, scanned ${items.length} relics`)
+    setStatus(`Done, scanned ${items.length} relics, press Save!`)
     const exporterElement = document.getElementById("exporter");
     exporterElement.style.display = "block";
 }
@@ -264,10 +249,26 @@ async function clickAtPoints(arr) {
     q(clickAtPoints, arr);
 }
 
-async function nextPage() {
+async function nextPage(state) {
     if (exit) return;
     if (page >= 5) {
-        return generateResults();
+        if (selectedGrade == 4 && grade == 5) {
+            console.warn('RESTART!', state)
+            page = 0;
+            grade = 4;
+            await setFilter(4);
+            await clickAt(75, 145); // Head
+
+            return scanPageQ({
+                index: 1,
+                row: 0,
+                column: 1,
+                rowPrevious: 0,
+                rowFirst: 0
+            })
+        } else {
+            return generateResults();
+        }
     }
     log('Next page')
     page++;
@@ -286,7 +287,18 @@ async function nextPage() {
     if (page == 5) {
         await clickAt(524, 145);
     }
-    scanPageQ();
+
+    if (grade == 4) {
+        scanPageQ({
+            index: 1,
+            row: 0,
+            column: 1,
+            rowPrevious: 0,
+            rowFirst: 0
+        })
+    } else {
+        scanPageQ();
+    }
 }
 
 async function scanPageQ(state) {
@@ -298,7 +310,7 @@ async function scanPageQ(state) {
                 row: 0,
                 column: 0,
                 rowPrevious: 0,
-                rowFirst: 0
+                rowFirst: 0,
             }
         }
 
@@ -309,11 +321,13 @@ async function scanPageQ(state) {
         await leftClick();
         await sleep(200);
 
-
         log(`Scanning on row ${state.row} col ${state.column}`)
-        let itemData = await runOcr();
+        let id = `${state.row}${state.column}`
+        await regionCapture2(id)
+        let itemData = await runOcr(id);
 
-        if (itemData.enhance < selectedValue) return nextPage(state);
+        if (itemData.enhance < selectedLevel) return nextPage(state);
+        if (itemData.enhance > 12 && grade == 4) return nextPage(state);
 
         console.warn(state.index, itemData == state.rowPrevious, itemData, state.rowPrevious)
         if (state.index == 0) {
@@ -343,13 +357,14 @@ async function scanPageQ(state) {
 
         if (state.row >= 5 && state.column == 0) {
             state.row = 4;
-            await scrollDown();
+            await scrollDown(state.index % 80 == 0 ? 4 : 5);
         } else {
 
         }
 
         q(scanPageQ, state);
     } catch (e) {
+        console.error(e)
         GlobalHotkey.deleteAll()
         queue = []
     }
@@ -377,6 +392,19 @@ async function setSort() {
     await clickAt(1186, 757);
     await clickAt(82, 149);
 }
+async function setFilter(n) {
+    if (exit) return;
+    log('Selecting grade filter')
+    await clickAt(53, 1000); // Filter button
+    await clickAt(1475, 1000); // Reset button
+    if (n == 4) {
+        await clickAt(1443, 404); // Enable 4 star filter
+    } else {
+        await clickAt(1657, 404); // Enable 5 star filter
+    }
+
+    await clickAt(800, 600); // Exit sort menu
+}
 document.addEventListener("DOMContentLoaded", async () => {
     document.getElementById('saveButton').addEventListener("click", async () => {
         save()
@@ -391,12 +419,18 @@ document.addEventListener("DOMContentLoaded", async () => {
             exit = false
             await sleep(3000);
 
-            var selectElement = document.getElementById("inputLevel");
-            selectedValue = selectElement.value;
-            console.log('Minimum level: ', selectedValue)
-            log('Minimum enhance level: ' + selectedValue)
+            var selectLevelElement = document.getElementById("inputLevel");
+            selectedLevel = selectLevelElement.value;
+            console.log('Minimum level: ', selectedLevel)
+            log('Minimum enhance level: ' + selectedLevel)
+
+            var selectGradeElement = document.getElementById("inputGrade");
+            selectedGrade = selectGradeElement.value;
+            console.log('Minimum grade: ', selectedGrade)
+            log('Minimum grade: ' + selectedGrade)
 
             page = 0;
+            grade = 5;
             queue = []
             items = [];
             let found = await setWindow();
@@ -407,6 +441,9 @@ document.addEventListener("DOMContentLoaded", async () => {
 
             await setMenu();
             await setSort();
+            await setFilter(5);
+
+            await compareCapture()
 
             q(scanPageQ);
         } catch (e) {
@@ -440,7 +477,6 @@ function setStatus(x) {
     statusElement.textContent = "Status: " + x;
 }
 
-
 const ioHook = require('iohook');
 
 let excludedKeycodes = [
@@ -452,7 +488,7 @@ ioHook.on('keydown', (event) => {
     if (excludedKeycodes.includes(event.keycode)) return
     cancel()
 });
-
+// Debug tool
 // ioHook.on('keydown', (event) => {
 //     if (event.keycode == 16) {
 //         runOcr()

@@ -29,3 +29,7 @@ html, body, #root, #app, #app>div {
 textarea {
   background-color : #e8e8e8;
 }
+
+.optionSelect {
+  min-width: 150px
+}
