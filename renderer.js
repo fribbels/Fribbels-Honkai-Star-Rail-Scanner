@@ -258,6 +258,7 @@ async function nextPage(state) {
             grade = 4;
             await setFilter(4);
             await clickAt(75, 145); // Head
+            await sleep(500)
 
             return scanPageQ({
                 index: 1,
@@ -288,6 +289,8 @@ async function nextPage(state) {
         await clickAt(524, 145);
     }
 
+    await sleep(500)
+            
     if (grade == 4) {
         scanPageQ({
             index: 1,
@@ -390,6 +393,7 @@ async function setSort() {
     await clickAt(250, 1000);
     await clickAt(975, 415);
     await clickAt(1186, 757);
+    await clickAt(159, 145);
     await clickAt(82, 149);
 }
 async function setFilter(n) {
