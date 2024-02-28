@@ -1,6 +1,6 @@
 # Fribbels-Honkai-Star-Rail-Scanner
 
-This is no longer supported, in favor of https://github.com/kel-z/HSR-Scanner, check that repo instead!
+# This is no longer supported - please see [Kel-Z's scanner](https://github.com/kel-z/HSR-Scanner/releases/latest) for an up to date scanner
 
 An OCR relic scanner for Honkai Star Rail
 
